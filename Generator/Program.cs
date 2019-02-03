@@ -1,12 +1,33 @@
-﻿using System;
+﻿using Generator.Generators;
+using Generator.Model;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace Generator
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var inputPath = @"F:\Repos\planner-ui\generator.json";
+            var serializer = new JsonSerializer();
+            var reader = new JsonTextReader(new StreamReader(File.OpenRead(inputPath)));
+
+            var model = serializer.Deserialize<MainModel>(reader);
+
+            var inputFolder = Path.GetDirectoryName(inputPath);
+            var srcPath = Path.Join(inputFolder, "src");
+
+            foreach (var form in model.Forms)
+            {
+                var outputFolder = Path.Join(srcPath, form.Path, form.KebabName);
+
+                var indexFile = Path.Join(outputFolder, "index.tsx");
+                var testFile = Path.Join(outputFolder, $"{form.KebabName}.generated.test.tsx");
+
+                FormGenerator.WriteForm(indexFile, form);
+                FormTestsGenerator.WriteFormTests(testFile, form);
+            }
         }
     }
 }
