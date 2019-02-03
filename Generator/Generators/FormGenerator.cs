@@ -96,23 +96,27 @@ namespace Generator.Generators
             var storeInterfacesPath = $"{PathToSourceRoot(form.PathLevel)}store/interfaces";
 
             writer.WriteLine("import Grid from \"@material-ui/core/Grid\";");
+
+            if (form.NeedsStyles)
+            {
+                writer.WriteLine("import createStyles from \"@material-ui/core/styles/createStyles\";");
+                writer.WriteLine("import withStyles, { WithStyles } from \"@material-ui/core/styles/withStyles\";");
+            }
+
             writer.WriteLine("import TextField from \"@material-ui/core/TextField\";");
-            writer.WriteLine("import * as React from \"react\";");
+
+            if (form.Fields.Any(f => f.Type == FieldTypes.Date))
+                writer.WriteLine("import format from \"date-fns/format\";");
+
+            writer.WriteLine("import { inject, observer } from \"mobx-react\";");
+            writer.WriteLine("import React from \"react\";");
+            writer.WriteLine($"import {{ FormDialog }} from \"{directivesPath}/form-dialog\";");
 
             if (form.Fields.Any(f => f.Type == FieldTypes.Bool))
                 writer.WriteLine($"import {{ InputCheck }} from \"{directivesPath}/input-check\";");
 
             writer.WriteLine($"import {{ {form.StoreData} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
             writer.WriteLine($"import {{ IStore }} from \"{storeInterfacesPath}/store\";");
-            writer.WriteLine("import { inject, observer } from \"mobx-react\";");
-            writer.WriteLine($"import {{ FormDialog }} from \"{directivesPath}/form-dialog\";");
-            if (form.NeedsStyles)
-            {
-                writer.WriteLine("import withStyles, { WithStyles } from \"@material-ui/core/styles/withStyles\";");
-                writer.WriteLine("import createStyles from \"@material-ui/core/styles/createStyles\";");
-            }
-            if (form.Fields.Any(f => f.Type == FieldTypes.Date))
-                writer.WriteLine("import format from \"date-fns/format\";");
 
             writer.WriteLine();
         }

@@ -42,19 +42,19 @@ namespace Generator.Generators
             var testSupportPath = $"{PathToSourceRoot(form.PathLevel)}__test-support__";
             var storeInterfacesPath = $"{PathToSourceRoot(form.PathLevel)}store/interfaces";
 
-            writer.WriteLine("jest.mock(\"@material-ui/core/Modal\")");
+            writer.WriteLine("jest.mock(\"@material-ui/core/Modal\");");
             writer.WriteLine();
             writer.WriteLine("import Modal from \"@material-ui/core/Modal\";");
-            writer.WriteLine("import * as React from \"react\";");
+            writer.WriteLine("import { shallow } from \"enzyme\";");
+            writer.WriteLine("import React from \"react\";");
+            writer.WriteLine("import ReactDOM from \"react-dom\";");
             writer.WriteLine("import TestUtils from \"react-dom/test-utils\";");
+            writer.WriteLine("import renderer from \"react-test-renderer\";");
             writer.WriteLine($"import {{ createMockChangeStore }} from \"{testSupportPath}/change-stores\";");
             writer.WriteLine($"import {{ mockComponent }} from \"{testSupportPath}/mock-component\";");
+            writer.WriteLine($"import {{ createTestEvent }} from \"{testSupportPath}/test-event\";");
             writer.WriteLine($"import {{ {form.StoreData} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
             writer.WriteLine($"import {{ {form.FormName} }} from \"./index\";");
-            writer.WriteLine("import ReactDOM from \"react-dom\";");
-            writer.WriteLine("import { shallow } from \"enzyme\";");
-            writer.WriteLine("import renderer from \"react-test-renderer\";");
-            writer.WriteLine($"import {{ createTestEvent }} from \"{testSupportPath}/test-event\";");
             writer.WriteLine();
             writer.WriteLine("mockComponent(Modal as TestUtils.MockedComponentClass);");
             writer.WriteLine();
