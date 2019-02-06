@@ -103,7 +103,8 @@ namespace Generator.Generators
                 writer.WriteLine("import withStyles, { WithStyles } from \"@material-ui/core/styles/withStyles\";");
             }
 
-            writer.WriteLine("import TextField from \"@material-ui/core/TextField\";");
+            if (form.Fields.Any(f => f.Type != FieldTypes.Bool))
+                writer.WriteLine("import TextField from \"@material-ui/core/TextField\";");
 
             if (form.Fields.Any(f => f.Type == FieldTypes.Date))
                 writer.WriteLine("import format from \"date-fns/format\";");
