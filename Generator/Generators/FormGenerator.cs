@@ -1,4 +1,5 @@
 ﻿using Generator.Model;
+using Soltys.ChangeCase;
 using System.IO;
 using System.Linq;
 
@@ -95,12 +96,23 @@ namespace Generator.Generators
             var directivesPath = $"{PathToSourceRoot(form.PathLevel)}directives";
             var storeInterfacesPath = $"{PathToSourceRoot(form.PathLevel)}store/interfaces";
 
+            if (form.Fields.Any(f => f.Type == FieldTypes.Select))
+            {
+                writer.WriteLine("import FormControl from \"@material-ui/core/FormControl/FormControl\";");
+            }
+
             writer.WriteLine("import Grid from \"@material-ui/core/Grid\";");
 
             if (form.NeedsStyles)
             {
                 writer.WriteLine("import createStyles from \"@material-ui/core/styles/createStyles\";");
                 writer.WriteLine("import withStyles, { WithStyles } from \"@material-ui/core/styles/withStyles\";");
+            }
+
+            if (form.Fields.Any(f => f.Type == FieldTypes.Select))
+            {
+                writer.WriteLine("import InputLabel from \"@material-ui/core/InputLabel/InputLabel\";");
+                writer.WriteLine("import Select from \"@material-ui/core/Select/Select\";");
             }
 
             if (form.Fields.Any(f => f.Type != FieldTypes.Bool))
@@ -116,8 +128,15 @@ namespace Generator.Generators
             if (form.Fields.Any(f => f.Type == FieldTypes.Bool))
                 writer.WriteLine($"import {{ InputCheck }} from \"{directivesPath}/input-check\";");
 
-            writer.WriteLine($"import {{ {form.StoreData} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
-            writer.WriteLine($"import {{ IStore }} from \"{storeInterfacesPath}/store\";");
+            if (string.IsNullOrWhiteSpace(form.StoreType))
+            {
+                writer.WriteLine($"import {{ {form.StoreData} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
+                writer.WriteLine($"import {{ IStore }} from \"{storeInterfacesPath}/store\";");
+            }
+            else
+            {
+                writer.WriteLine($"import {{ {form.StoreType} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
+            }
 
             writer.WriteLine();
         }
@@ -125,7 +144,12 @@ namespace Generator.Generators
         private static void WriteProps(TextWriter writer, Form form)
         {
             writer.WriteLine($"interface {form.PropsInterface} {{");
-            writer.WriteLine($"  {form.Store}?: IStore<{form.StoreData}>;");
+
+            if (string.IsNullOrWhiteSpace(form.StoreType))
+                writer.WriteLine($"  {form.Store}?: IStore<{form.StoreData}>;");
+            else
+                writer.WriteLine($"  {form.Store}?: {form.StoreType};");
+
             writer.WriteLine($"}}");
             writer.WriteLine();
         }
@@ -160,6 +184,29 @@ namespace Generator.Generators
 
             writer.WriteLine("    } = data;");
             writer.WriteLine();
+
+            foreach (var field in form.Fields.Where(f => f.UsesProcessedValue).OrderBy(f => f.Name))
+            {
+                writer.WriteLine($"    let actual{field.Name.UpperCaseFirst()} = \"\";");
+
+                if (field.HideZero)
+                {
+                    writer.WriteLine($"    if ({field.Name} > 0) {{");
+                    writer.WriteLine($"      actual{field.Name.UpperCaseFirst()} = {field.Name}.toString();");
+                    writer.WriteLine("    }");
+                }
+                writer.WriteLine();
+            }
+
+            foreach (var field in form.Fields.Where(f => f.Type == FieldTypes.Select).OrderBy(f => f.Name))
+            {
+                writer.WriteLine($"    const {field.Name}Items = {form.Store}!.{field.Items}.map(i => (");
+                writer.WriteLine($"      <option key={{i.{field.ItemId}}} value={{i.{field.ItemId}}}>");
+                writer.WriteLine($"        {{i.{field.ItemName}}}");
+                writer.WriteLine($"      </option>");
+                writer.WriteLine($"    ));");
+            }
+
             writer.WriteLine("    return (");
             writer.WriteLine("      <FormDialog");
             writer.WriteLine($"        formTitle=\"{form.Title}\"");
@@ -173,10 +220,18 @@ namespace Generator.Generators
 
             foreach (var field in form.Fields)
             {
+                var name = field.UsesProcessedValue ? $"actual{field.Name.UpperCaseFirst()}" : field.Name;
+
                 writer.WriteLine("          <Grid item xs={12}>");
 
                 if (field.Type == FieldTypes.Bool)
                     writer.WriteLine("            <InputCheck");
+                else if (field.Type == FieldTypes.Select)
+                {
+                    writer.WriteLine("            <FormControl>");
+                    writer.WriteLine($"              <InputLabel htmlFor=\"{field.Name}\">{field.Label}</InputLabel>");
+                    writer.WriteLine("              <Select");
+                }
                 else
                     writer.WriteLine("            <TextField");
 
@@ -184,14 +239,19 @@ namespace Generator.Generators
                 writer.WriteLine($"              name=\"{field.Name}\"");
 
                 if (field.Type == FieldTypes.Bool)
-                    writer.WriteLine($"              checked={{{field.Name}}}");
+                    writer.WriteLine($"              checked={{{name}}}");
                 else if (field.Type == FieldTypes.Date)
-                    writer.WriteLine($"              value={{format({field.Name}, \"YYYY-MM-DD\")}}");
+                    writer.WriteLine($"              value={{format({name}, \"YYYY-MM-DD\")}}");
                 else
-                    writer.WriteLine($"              value={{{field.Name}}}");
+                    writer.WriteLine($"              value={{{name}}}");
 
-                writer.WriteLine($"              label=\"{field.Label}\"");
+                if (field.Type != FieldTypes.Select)
+                    writer.WriteLine($"              label=\"{field.Label}\"");
+
                 writer.WriteLine("              onChange={handleInput}");
+
+                if (field.Type == FieldTypes.Select)
+                    writer.WriteLine("              native");
 
                 if (!string.IsNullOrWhiteSpace(field.Disabled))
                     writer.WriteLine($"              disabled={{{field.Disabled}}}");
@@ -241,7 +301,17 @@ namespace Generator.Generators
                     writer.WriteLine("              }}");
                 }
 
-                writer.WriteLine("            />");
+                if (field.Type == FieldTypes.Select)
+                {
+                    writer.WriteLine("              >");
+                    writer.WriteLine($"                {{{field.Name}Items}}");
+                    writer.WriteLine("              </Select>");
+                    writer.WriteLine("            </FormControl>");
+                }
+                else
+                {
+                    writer.WriteLine("            />");
+                }
                 writer.WriteLine("          </Grid>");
             }
 

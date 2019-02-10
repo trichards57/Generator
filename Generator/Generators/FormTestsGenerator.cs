@@ -50,10 +50,17 @@ namespace Generator.Generators
             writer.WriteLine("import ReactDOM from \"react-dom\";");
             writer.WriteLine("import TestUtils from \"react-dom/test-utils\";");
             writer.WriteLine("import renderer from \"react-test-renderer\";");
-            writer.WriteLine($"import {{ createMockChangeStore }} from \"{testSupportPath}/change-stores\";");
+            if (string.IsNullOrWhiteSpace(form.StoreType))
+                writer.WriteLine($"import {{ createMockChangeStore }} from \"{testSupportPath}/change-stores\";");
+            else
+                writer.WriteLine($"import {{ createMock{form.StoreType.Substring(1)} }} from \"{testSupportPath}/change-stores\";");
+
             writer.WriteLine($"import {{ mockComponent }} from \"{testSupportPath}/mock-component\";");
             writer.WriteLine($"import {{ createTestEvent }} from \"{testSupportPath}/test-event\";");
-            writer.WriteLine($"import {{ {form.StoreData} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
+
+            if (string.IsNullOrWhiteSpace(form.StoreType))
+                writer.WriteLine($"import {{ {form.StoreData} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
+
             writer.WriteLine($"import {{ {form.FormName} }} from \"./index\";");
             writer.WriteLine();
             writer.WriteLine("mockComponent(Modal as TestUtils.MockedComponentClass);");
@@ -67,7 +74,12 @@ namespace Generator.Generators
             writer.WriteLine();
             writer.WriteLine("    ReactDOM.render(");
             writer.WriteLine($"      <{form.FormName}");
-            writer.WriteLine($"        {form.Store}={{createMockChangeStore()}}");
+
+            if (string.IsNullOrWhiteSpace(form.StoreType))
+                writer.WriteLine($"        {form.Store}={{createMockChangeStore()}}");
+            else
+                writer.WriteLine($"        {form.Store}={{createMock{form.StoreType.Substring(1)}()}}");
+
             writer.WriteLine($"      />,");
             writer.WriteLine($"      div");
             writer.WriteLine("    );");
@@ -85,7 +97,12 @@ namespace Generator.Generators
         private static void WriteTestHandleInput(TextWriter writer, Form form)
         {
             writer.WriteLine("function testHandleInput(name: string) {");
-            writer.WriteLine($"  const mockStore = createMockChangeStore<{form.StoreData}>(");
+
+            if (string.IsNullOrWhiteSpace(form.StoreType))
+                writer.WriteLine($"  const mockStore = createMockChangeStore<{form.StoreData}>(");
+            else
+                writer.WriteLine($"  const mockStore = createMock{form.StoreType.Substring(1)}(");
+
             writer.WriteLine($"    createTestEvent()");
             writer.WriteLine("  );");
             writer.WriteLine();
@@ -112,7 +129,12 @@ namespace Generator.Generators
             var validText = valid ? "valid" : "invalid";
 
             writer.WriteLine($"  it(\"should render {validText} inputs correctly\", () => {{");
-            writer.WriteLine($"    const mockStore = createMockChangeStore<{form.StoreData}>(");
+
+            if (string.IsNullOrWhiteSpace(form.StoreType))
+                writer.WriteLine($"    const mockStore = createMockChangeStore<{form.StoreData}>(");
+            else
+                writer.WriteLine($"    const mockStore = createMock{form.StoreType.Substring(1)}(");
+
             writer.WriteLine($"      createTestEvent()");
             writer.WriteLine("    );");
             writer.WriteLine("    mockStore.show = true;");

@@ -40,6 +40,7 @@ namespace Generator.Model
         public string Store => $"{Name.LowerCaseFirst()}Store";
 
         public string StoreData => $"I{Name}Data";
+        public string StoreType { get; set; }
         public string Title { get; set; }
     }
 }
