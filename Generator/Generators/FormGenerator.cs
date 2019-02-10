@@ -115,7 +115,7 @@ namespace Generator.Generators
                 writer.WriteLine("import Select from \"@material-ui/core/Select/Select\";");
             }
 
-            if (form.Fields.Any(f => f.Type != FieldTypes.Bool))
+            if (form.Fields.Any(f => f.Type != FieldTypes.Bool && f.Type != FieldTypes.Select))
                 writer.WriteLine("import TextField from \"@material-ui/core/TextField\";");
 
             if (form.Fields.Any(f => f.Type == FieldTypes.Date))
@@ -136,6 +136,14 @@ namespace Generator.Generators
             else
             {
                 writer.WriteLine($"import {{ {form.StoreType} }} from \"{storeInterfacesPath}/{form.KebabName}\";");
+            }
+
+            if (form.ExtraImports != null)
+            {
+                foreach (var import in form.ExtraImports)
+                {
+                    writer.WriteLine($"import {import};");
+                }
             }
 
             writer.WriteLine();
@@ -159,8 +167,10 @@ namespace Generator.Generators
             writer.WriteLine("  render() {");
             writer.WriteLine("    const {");
             writer.WriteLine($"      {form.Store},");
+
             if (form.NeedsStyles)
                 writer.WriteLine($"      classes,");
+
             writer.WriteLine("    } = this.props;");
             writer.WriteLine("    const {");
             writer.WriteLine("      data,");
@@ -168,33 +178,53 @@ namespace Generator.Generators
             writer.WriteLine("      validation,");
             writer.WriteLine("      show,");
             writer.WriteLine("      hide,");
-            writer.WriteLine("      submit");
-            writer.WriteLine($"    }} = {form.Store}!;");
-            writer.WriteLine();
-            writer.WriteLine("    if (!data) {");
-            writer.WriteLine("      return null;");
-            writer.WriteLine("    }");
-            writer.WriteLine();
-            writer.WriteLine("    const {");
+            writer.WriteLine("      submit,");
 
-            foreach (var field in form.Fields.OrderBy(f => f.Name))
+            foreach (var field in form.Fields.Where(f => !string.IsNullOrWhiteSpace(f.StoreParam)).OrderBy(f => f.StoreParam))
             {
-                writer.WriteLine($"      {field.Name},");
+                writer.WriteLine($"      {field.StoreParam},");
             }
 
-            writer.WriteLine("    } = data;");
+            if (form.UsesUpdateMode)
+                writer.WriteLine("      updateMode,");
+
+            writer.WriteLine($"    }} = {form.Store}!;");
             writer.WriteLine();
+
+            if (form.Fields.Any(f => string.IsNullOrWhiteSpace(f.StoreParam)))
+            {
+                writer.WriteLine("    if (!data) {");
+                writer.WriteLine("      return null;");
+                writer.WriteLine("    }");
+                writer.WriteLine();
+                writer.WriteLine("    const {");
+
+                foreach (var field in form.Fields.Where(f => string.IsNullOrWhiteSpace(f.StoreParam)).OrderBy(f => f.Name))
+                {
+                    writer.WriteLine($"      {field.Name},");
+                }
+
+                writer.WriteLine("    } = data;");
+                writer.WriteLine();
+            }
 
             foreach (var field in form.Fields.Where(f => f.UsesProcessedValue).OrderBy(f => f.Name))
             {
-                writer.WriteLine($"    let actual{field.Name.UpperCaseFirst()} = \"\";");
-
                 if (field.HideZero)
                 {
+                    writer.WriteLine($"    let actual{field.Name.UpperCaseFirst()} = \"\";");
                     writer.WriteLine($"    if ({field.Name} > 0) {{");
                     writer.WriteLine($"      actual{field.Name.UpperCaseFirst()} = {field.Name}.toString();");
                     writer.WriteLine("    }");
                 }
+                if (field.WithTBD)
+                {
+                    writer.WriteLine($"    let actual{field.Name.UpperCaseFirst()} = {field.Name};");
+                    writer.WriteLine($"    if (!actual{field.Name.UpperCaseFirst()}) {{");
+                    writer.WriteLine($"      actual{field.Name.UpperCaseFirst()} = -1;");
+                    writer.WriteLine("    }");
+                }
+
                 writer.WriteLine();
             }
 
@@ -202,14 +232,31 @@ namespace Generator.Generators
             {
                 writer.WriteLine($"    const {field.Name}Items = {form.Store}!.{field.Items}.map(i => (");
                 writer.WriteLine($"      <option key={{i.{field.ItemId}}} value={{i.{field.ItemId}}}>");
-                writer.WriteLine($"        {{i.{field.ItemName}}}");
+
+                if (string.IsNullOrWhiteSpace(field.ItemName))
+                    writer.WriteLine($"        {{{field.ItemText}}}");
+                else
+                    writer.WriteLine($"        {{i.{field.ItemName}}}");
+
                 writer.WriteLine($"      </option>");
                 writer.WriteLine($"    ));");
             }
 
+            if (form.UsesUpdateMode)
+            {
+                writer.WriteLine();
+                writer.WriteLine($"    const title = updateMode ? \"{form.UpdateTitle}\" : \"{form.AddTitle}\";");
+                writer.WriteLine();
+            }
+
             writer.WriteLine("    return (");
             writer.WriteLine("      <FormDialog");
-            writer.WriteLine($"        formTitle=\"{form.Title}\"");
+
+            if (form.UsesUpdateMode)
+                writer.WriteLine("        formTitle={title}");
+            else
+                writer.WriteLine($"        formTitle=\"{form.Title}\"");
+
             writer.WriteLine("        submitButtonText=\"Save\"");
             writer.WriteLine("        onSubmit={submit}");
             writer.WriteLine("        show={show}");
@@ -220,7 +267,7 @@ namespace Generator.Generators
 
             foreach (var field in form.Fields)
             {
-                var name = field.UsesProcessedValue ? $"actual{field.Name.UpperCaseFirst()}" : field.Name;
+                var name = field.UsesProcessedValue ? $"actual{field.StoreField.UpperCaseFirst()}" : field.StoreField;
 
                 writer.WriteLine("          <Grid item xs={12}>");
 
@@ -304,6 +351,13 @@ namespace Generator.Generators
                 if (field.Type == FieldTypes.Select)
                 {
                     writer.WriteLine("              >");
+
+                    if (field.WithTBD)
+                    {
+                        var text = string.IsNullOrWhiteSpace(field.TbdText) ? "TBD" : field.TbdText;
+                        writer.WriteLine($"                <option value=\"-1\">{text}</option>");
+                    }
+
                     writer.WriteLine($"                {{{field.Name}Items}}");
                     writer.WriteLine("              </Select>");
                     writer.WriteLine("            </FormControl>");

@@ -15,8 +15,18 @@ namespace Generator.Generators
                 WriteTestDescription(file, form);
                 WriteNoDataTest(file, form);
                 WriteHandleInputTests(file, form);
-                WriteValidationTest(file, form, true);
-                WriteValidationTest(file, form, false);
+                if (form.UsesUpdateMode)
+                {
+                    WriteValidationTest(file, form, true, true);
+                    WriteValidationTest(file, form, false, true);
+                    WriteValidationTest(file, form, true, false);
+                    WriteValidationTest(file, form, false, false);
+                }
+                else
+                {
+                    WriteValidationTest(file, form, true);
+                    WriteValidationTest(file, form, false);
+                }
                 WriteEndTests(file, form);
             }
         }
@@ -124,11 +134,16 @@ namespace Generator.Generators
             writer.WriteLine();
         }
 
-        private static void WriteValidationTest(TextWriter writer, Form form, bool valid)
+        private static void WriteValidationTest(TextWriter writer, Form form, bool valid, bool? updateMode = null)
         {
             var validText = valid ? "valid" : "invalid";
 
-            writer.WriteLine($"  it(\"should render {validText} inputs correctly\", () => {{");
+            if (updateMode == true)
+                writer.WriteLine($"  it(\"should render {validText} update inputs correctly\", () => {{");
+            else if (updateMode == false)
+                writer.WriteLine($"  it(\"should render {validText} create inputs correctly\", () => {{");
+            else
+                writer.WriteLine($"  it(\"should render {validText} inputs correctly\", () => {{");
 
             if (string.IsNullOrWhiteSpace(form.StoreType))
                 writer.WriteLine($"    const mockStore = createMockChangeStore<{form.StoreData}>(");
@@ -138,6 +153,10 @@ namespace Generator.Generators
             writer.WriteLine($"      createTestEvent()");
             writer.WriteLine("    );");
             writer.WriteLine("    mockStore.show = true;");
+
+            if (updateMode != null)
+                writer.WriteLine($"    mockStore.updateMode = {updateMode.ToString().ToLower()};");
+
             writer.WriteLine("    mockStore.validation = {");
             writer.WriteLine($"      allValid: {valid.ToString().ToLowerInvariant()},");
 

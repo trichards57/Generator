@@ -6,6 +6,8 @@ namespace Generator.Model
 {
     internal class Form
     {
+        public string AddTitle { get; set; }
+        public string[] ExtraImports { get; set; }
         public IEnumerable<Field> Fields { get; set; }
 
         public string FormName => $"{Name.PascalCase()}Form";
@@ -42,5 +44,7 @@ namespace Generator.Model
         public string StoreData => $"I{Name}Data";
         public string StoreType { get; set; }
         public string Title { get; set; }
+        public string UpdateTitle { get; set; }
+        public bool UsesUpdateMode => string.IsNullOrWhiteSpace(Title) && !string.IsNullOrWhiteSpace(AddTitle) && !string.IsNullOrWhiteSpace(UpdateTitle);
     }
 }
