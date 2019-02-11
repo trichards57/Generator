@@ -9,7 +9,8 @@
         Date,
         Time,
         LongText,
-        Select
+        Select,
+        Email
     }
 
     internal class Field

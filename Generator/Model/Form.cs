@@ -6,7 +6,16 @@ namespace Generator.Model
 {
     internal class Form
     {
+        private bool _customStoreGenerator;
+
         public string AddTitle { get; set; }
+
+        public bool CustomStoreGenerator
+        {
+            get => _customStoreGenerator || !string.IsNullOrWhiteSpace(StoreType);
+            set => _customStoreGenerator = value;
+        }
+
         public string[] ExtraImports { get; set; }
         public IEnumerable<Field> Fields { get; set; }
 

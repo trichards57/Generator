@@ -9,6 +9,9 @@ namespace Generator.Generators
     {
         public static void WriteForm(string path, Form form)
         {
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+
             using (var file = new StreamWriter(path))
             {
                 WriteHeaders(file, form);
@@ -322,6 +325,10 @@ namespace Generator.Generators
 
                     case FieldTypes.Time:
                         writer.WriteLine("              type=\"time\"");
+                        break;
+
+                    case FieldTypes.Email:
+                        writer.WriteLine("              type=\"email\"");
                         break;
 
                     case FieldTypes.LongText:
