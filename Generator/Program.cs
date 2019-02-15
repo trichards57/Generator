@@ -9,7 +9,7 @@ namespace Generator
     {
         private static void Main(string[] args)
         {
-            var inputPath = @"F:\Repos\planner-ui\generator.json";
+            var inputPath = @"C:\Users\trich\source\repos\planner-ui\generator.json";
             var serializer = new JsonSerializer();
             var reader = new JsonTextReader(new StreamReader(File.OpenRead(inputPath)));
 
@@ -24,9 +24,11 @@ namespace Generator
 
                 var indexFile = Path.Join(outputFolder, "index.tsx");
                 var testFile = Path.Join(outputFolder, $"{form.KebabName}.generated.test.tsx");
+                var dataInterface = Path.Join(srcPath, @"store\interfaces", $"{form.KebabName}.ts");
 
                 FormGenerator.WriteForm(indexFile, form);
                 FormTestsGenerator.WriteFormTests(testFile, form);
+                StoreGenerator.WriteStoreInterface(dataInterface, form);
             }
         }
     }
